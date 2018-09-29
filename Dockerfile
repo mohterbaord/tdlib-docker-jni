@@ -1,21 +1,30 @@
-FROM alpine:3.7 as builder
+FROM openjdk:8-alpine as builder
 
-RUN apk update && apk add gperf alpine-sdk openssl-dev git cmake
+RUN apk update && apk add git alpine-sdk openssl-dev zlib-dev gperf cmake
 
-WORKDIR /tmp/_build_tdlib/
+WORKDIR /tmp/_build_tdlib
+RUN git clone https://github.com/tdlib/td.git .
+RUN git checkout v1.3.0
 
-RUN git clone https://github.com/tdlib/td.git /tmp/_build_tdlib/
-RUN git checkout v1.2.0
+WORKDIR /tmp/_build_tdlib/jnibuild
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DTD_ENABLE_JNI=ON -DCMAKE_INSTALL_PREFIX:PATH=../example/java/td ..
+RUN cmake --build . --target install
 
-RUN mkdir build
-WORKDIR /tmp/_build_tdlib/build/
-RUN cmake -DCMAKE_BUILD_TYPE=Release ..
-RUN cmake --build .
-RUN make install
+WORKDIR /tmp/_build_tdlib/example/java/build
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DTd_DIR=/tmp/_build_tdlib/example/java/td/lib/cmake/Td -DCMAKE_INSTALL_PREFIX:PATH=.. ..
+RUN cmake --build . --target install
+
+WORKDIR /usr/local/lib/tdlib
+RUN cp -r /tmp/_build_tdlib/example/java/docs .
+RUN cp -r /tmp/_build_tdlib/example/java/bin .
+
+RUN ls -lh /usr/local/lib/tdlib
+
 RUN rm -rf /tmp/_build_tdlib/
 
-FROM alpine:3.7
 
-COPY --from=builder /usr/local/lib/libtd* /usr/local/lib/
+FROM openjdk:8-alpine
 
-RUN apk update && apk add gperf openssl-dev git cmake
+RUN apk update && apk add openssl zlib
+
+COPY --from=builder /usr/local/lib/tdlib /usr/local/lib/tdlib
