@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+    paths:
+      - .github/workflows/**
+      - Dockerfile
+  pull_request:
+    tags:
+      - 'v*.*.*'
+    paths:
+      - .github/workflows/**
+      - Dockerfile
+
+jobs:
+  build:
+    name: Build and Publish Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Docker Meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: mohterbaord/tdlib-docker-jni
+          tags: type=semver,pattern={{major}}.{{minor}}.{{patch}}
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Build and Push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
