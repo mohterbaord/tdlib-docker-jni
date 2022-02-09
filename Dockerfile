@@ -2,7 +2,7 @@ FROM openjdk:8-alpine as builder
 
 RUN apk update && apk add git alpine-sdk openssl-dev zlib-dev gperf cmake linux-headers
 
-ENV TDLIB_VERSION="v1.7.0"
+ENV TDLIB_VERSION="v1.8.0"
 
 WORKDIR /tmp/_build_tdlib
 RUN git clone https://github.com/tdlib/td.git .
